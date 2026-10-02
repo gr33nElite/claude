@@ -10,6 +10,7 @@ import webbrowser
 
 from . import db
 from .app import create_app
+from .extract import TESSERACT_MISSING, find_tesseract
 from .importer import Importer
 
 
@@ -26,6 +27,8 @@ def main():
 
     app = create_app(args.data)
     if args.cmd == "import":
+        if not find_tesseract():
+            raise SystemExit(TESSERACT_MISSING)
         conn = db.connect(app.config["DB_PATH"])
         importer = Importer(conn, app.config["DATA_DIR"])
         for path in args.pdfs:

@@ -22,9 +22,10 @@ Everything runs on your own computer, and nothing is sent anywhere.
 1. Install **Python 3.10+** from <https://www.python.org/downloads/>. If the
    installer offers *Add python.exe to PATH*, tick it. Newer installers set
    up the `py` command instead, which works the same way.
-2. Install **Tesseract OCR** (the free text reader) from
-   <https://github.com/UB-Mannheim/tesseract/wiki>. The default install
-   location is fine, since TicketMgr looks for it there.
+2. Install **Tesseract OCR** (the free text reader). The simplest way is to
+   run `winget install UB-Mannheim.TesseractOCR` in a Command Prompt, or use
+   the installer from <https://github.com/UB-Mannheim/tesseract/wiki>. The
+   default install location is fine, since TicketMgr looks for it there.
 3. Open a Command Prompt in this `ticketmgr` folder and run:
 
    ```

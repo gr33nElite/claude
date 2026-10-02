@@ -11,14 +11,28 @@ import shutil
 import pypdfium2 as pdfium
 import pytesseract
 
-# On Windows the Tesseract installer doesn't add itself to PATH.
-if not shutil.which("tesseract"):
+TESSERACT_MISSING = ("Tesseract OCR isn't installed, so scans can't be read. Install it "
+                     "(in a Command Prompt: winget install UB-Mannheim.TesseractOCR), "
+                     "then import again.")
+
+
+def find_tesseract():
+    """Point pytesseract at Tesseract; return False if it isn't installed.
+
+    Checked on every import, so installing Tesseract while the app is
+    running works without a restart. On Windows the installer doesn't add
+    itself to PATH, so look in the usual install folders too.
+    """
+    if shutil.which("tesseract"):
+        pytesseract.pytesseract.tesseract_cmd = "tesseract"
+        return True
     for candidate in (r"C:\Program Files\Tesseract-OCR\tesseract.exe",
                       r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
                       os.path.expandvars(r"%LOCALAPPDATA%\Programs\Tesseract-OCR\tesseract.exe")):
         if os.path.exists(candidate):
             pytesseract.pytesseract.tesseract_cmd = candidate
-            break
+            return True
+    return False
 
 OCR_DPI = 300
 

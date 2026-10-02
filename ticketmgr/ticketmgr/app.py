@@ -6,6 +6,7 @@ from flask import (Flask, abort, flash, g, redirect, render_template, request,
                    send_file, url_for)
 
 from . import db
+from .extract import TESSERACT_MISSING, find_tesseract
 from .importer import Importer
 
 DEFAULT_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -91,10 +92,14 @@ def create_app(data_dir=None, reader=None):
     def import_scans():
         if request.method == "GET":
             scans = get_db().execute("SELECT * FROM scans ORDER BY id DESC LIMIT 50").fetchall()
-            return render_template("import.html", scans=scans)
+            missing = None if app.config["READER"] or find_tesseract() else TESSERACT_MISSING
+            return render_template("import.html", scans=scans, missing=missing)
         files = [f for f in request.files.getlist("pdfs") if f and f.filename]
         if not files:
             flash("Choose one or more PDF files first.")
+            return redirect(url_for("import_scans"))
+        if not app.config["READER"] and not find_tesseract():
+            flash(TESSERACT_MISSING)
             return redirect(url_for("import_scans"))
         kwargs = {"reader": app.config["READER"]} if app.config["READER"] else {}
         importer = Importer(get_db(), app.config["DATA_DIR"], **kwargs)
