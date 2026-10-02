@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}{{ t.invoice_no }} · TicketMgr{% endblock %}
+{% block content %}
+<div class="ticket-head">
+  <h1>{{ t.invoice_no }} <span class="badge s-{{ t.status | lower | replace(' ', '-') }}">{{ t.status }}</span></h1>
+  <span class="muted">{{ t.bill_to | first_line }} · ticket {{ t.ticket_date or '?' }} {{ t.ticket_time or '' }} · updated {{ t.updated_at }}</span>
+</div>
+
+{% if t.needs_review %}
+<form class="flash review" method="post" action="{{ url_for('mark_checked', ticket_id=t.id) }}">
+  Part of this scan couldn't be read. Compare the lines with the scan on the right (the worklog lists what was missed), fix anything off, then
+  <button type="submit">Mark as checked</button>
+</form>
+{% endif %}
+<div class="ticket">
+  <div class="main">
+    <form class="card fields" method="post" action="{{ url_for('ticket_update', ticket_id=t.id) }}">
+      <div class="row">
+        <label>Status
+          <select name="status">{% for s in STATUSES %}<option {{ 'selected' if s == t.status }}>{{ s }}</option>{% endfor %}</select>
+        </label>
+        <label>Priority
+          <select name="priority">{% for p in PRIORITIES %}<option {{ 'selected' if p == t.priority }}>{{ p }}</option>{% endfor %}</select>
+        </label>
+        <label>Assigned to <input name="assigned_to" value="{{ t.assigned_to or '' }}"></label>
+        <label>Follow up <input type="date" name="follow_up" value="{{ t.follow_up or '' }}"></label>
+      </div>
+      <details {{ 'open' if t.invoice_no.startswith('UNREAD-') }}>
+        <summary>Ticket details from the scan</summary>
+        <div class="row">
+          <label>Invoice # <input name="invoice_no" value="{{ t.invoice_no }}"></label>
+          <label>Cust # <input name="cust_no" value="{{ t.cust_no or '' }}"></label>
+          <label>Cust PO # <input name="cust_po" value="{{ t.cust_po or '' }}"></label>
+          <label>Phone <input name="phone" value="{{ t.phone or '' }}"></label>
+          <label>Sold by <input name="sold_by" value="{{ t.sold_by or '' }}"></label>
+          <label>Ticket date <input name="ticket_date" value="{{ t.ticket_date or '' }}"></label>
+          <label>Ticket time <input name="ticket_time" value="{{ t.ticket_time or '' }}"></label>
+        </div>
+        <div class="row">
+          <label class="wide">Bill to <textarea name="bill_to" rows="4">{{ t.bill_to or '' }}</textarea></label>
+          <label class="wide">Ship to <textarea name="ship_to" rows="4">{{ t.ship_to or '' }}</textarea></label>
+        </div>
+      </details>
+      <button type="submit">Save</button>
+    </form>
+
+    <section class="card" id="items">
+      <h2>Lines</h2>
+      <table class="grid items">
+        <thead><tr><th>Ord</th><th>Shp</th><th>Part #</th><th>Description</th><th>Bin</th><th>JB</th><th></th></tr></thead>
+        <tbody>
+        {% for i in items %}
+          {% set short = i.qord is none or i.qshp is none or i.qshp < i.qord %}
+          <tr class="{{ 'short-row' if short }}">
+            <td><input form="item-{{ i.id }}" name="qord" value="{{ i.qord if i.qord is not none else '' }}" size="2"></td>
+            <td><input form="item-{{ i.id }}" name="qshp" value="{{ i.qshp if i.qshp is not none else '' }}" size="2"></td>
+            <td><input form="item-{{ i.id }}" name="part" value="{{ i.part }}" size="16"></td>
+            <td><input form="item-{{ i.id }}" name="description" value="{{ i.description or '' }}" size="18"></td>
+            <td><input form="item-{{ i.id }}" name="bin" value="{{ i.bin or '' }}" size="5"></td>
+            <td><input form="item-{{ i.id }}" name="jb" value="{{ i.jb or '' }}" size="2"></td>
+            <td class="actions">
+              <form id="item-{{ i.id }}" method="post" action="{{ url_for('edit_item', ticket_id=t.id, item_id=i.id) }}">
+                <button type="submit" title="Save this line">Save</button>
+                <button type="submit" name="delete" value="1" class="link" title="Remove this line"
+                        onclick="return confirm('Remove {{ i.part }}?')">✕</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+          <tr class="add-row">
+            <td><input form="item-new" name="qord" size="2" placeholder="Ord"></td>
+            <td><input form="item-new" name="qshp" size="2" placeholder="Shp"></td>
+            <td><input form="item-new" name="part" size="16" placeholder="Add a part #"></td>
+            <td><input form="item-new" name="description" size="18"></td>
+            <td><input form="item-new" name="bin" size="5"></td>
+            <td><input form="item-new" name="jb" size="2"></td>
+            <td><form id="item-new" method="post" action="{{ url_for('add_item', ticket_id=t.id) }}"><button type="submit">Add</button></form></td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="muted">Highlighted lines are short (shipped less than ordered). Lines you edit here are kept as you left them when the ticket is scanned again.</p>
+    </section>
+
+    <section class="card" id="worklog">
+      <h2>Worklog</h2>
+      <form method="post" action="{{ url_for('add_note', ticket_id=t.id) }}" class="note-form">
+        <textarea name="body" rows="3" placeholder="Add a note: who you called, ETA, where the parts are…" required></textarea>
+        <div class="row">
+          <label>Your name <input name="author" value="{{ author }}" size="12"></label>
+          <button type="submit">Add note</button>
+        </div>
+      </form>
+      <ol class="log">
+      {% for n in notes %}
+        <li class="log-{{ n.kind }}">
+          <div class="meta">{{ n.created_at }}{% if n.author %} · {{ n.author }}{% endif %}{% if n.kind != 'note' %} · {{ 'scan' if n.kind == 'system' else 'change' }}{% endif %}</div>
+          <div class="body">{{ n.body }}</div>
+        </li>
+      {% endfor %}
+      </ol>
+    </section>
+
+    <form method="post" action="{{ url_for('delete_ticket', ticket_id=t.id) }}" onsubmit="return confirm('Delete ticket {{ t.invoice_no }} and its notes?')">
+      <button class="danger" type="submit">Delete ticket</button>
+    </form>
+  </div>
+
+  <aside class="scans">
+    <h2>Scans</h2>
+    {% for p in pages %}
+      <figure>
+        <a href="{{ url_for('page_image', page_id=p.id) }}" target="_blank"><img src="{{ url_for('page_image', page_id=p.id) }}" alt="Scanned page" loading="lazy"></a>
+        <figcaption>{{ p.filename }}, page {{ p.page_index + 1 }} · imported {{ p.imported_at }}</figcaption>
+      </figure>
+    {% else %}
+      <p class="muted">No scans for this ticket.</p>
+    {% endfor %}
+  </aside>
+</div>
+{% endblock %}
