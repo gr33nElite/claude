@@ -19,18 +19,22 @@ Everything runs on your own computer, and nothing is sent anywhere.
 
 ## Install (Windows)
 
-1. Install **Python 3.10+** from <https://www.python.org/downloads/> and tick
-   *Add python.exe to PATH* in the installer.
-2. Install **Tesseract OCR** (the free text reader) from
-   <https://github.com/UB-Mannheim/tesseract/wiki>. The default install
-   location is fine, since TicketMgr looks for it there.
+1. Install **Python 3.10+** from <https://www.python.org/downloads/>. If the
+   installer offers *Add python.exe to PATH*, tick it. Newer installers set
+   up the `py` command instead, which works the same way.
+2. Install **Tesseract OCR** (the free text reader). The simplest way is to
+   run `winget install UB-Mannheim.TesseractOCR` in a Command Prompt, or use
+   the installer from <https://github.com/UB-Mannheim/tesseract/wiki>. The
+   default install location is fine, since TicketMgr looks for it there.
 3. Open a Command Prompt in this `ticketmgr` folder and run:
 
    ```
-   python -m pip install -r requirements.txt
+   py -m pip install -r requirements.txt
    ```
 
-4. Double-click `start.bat` (or run `python -m ticketmgr`). Your browser opens
+   (Use `python` in place of `py` if `py` isn't recognized.)
+
+4. Double-click `start.bat` (or run `py -m ticketmgr`). Your browser opens
    at <http://127.0.0.1:5000>.
 
 On macOS, run `brew install tesseract`. On Debian or Ubuntu, run
