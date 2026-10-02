@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Import results · TicketMgr{% endblock %}
+{% block content %}
+<h1>Import results</h1>
+{% for filename, r, error in results %}
+<div class="card">
+  <h2>{{ filename }}</h2>
+  {% if error %}
+    <p class="short">Could not import this file: {{ error }}</p>
+  {% else %}
+    <p>{{ r.pages }} page(s) read · {{ r.created | length }} new ticket(s) · {{ r.updated | length }} updated
+       {% if r.review %}· <span class="short">{{ r.review | length }} need a look</span>{% endif %}</p>
+    <table class="grid">
+      <thead><tr><th></th><th>Invoice #</th><th>Customer</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for id in r.created + r.updated %}{% set t = tickets[id] %}
+        <tr>
+          <td>{{ 'New' if id in r.created else 'Updated' }}{% if id in r.review %} · <span class="short">check scan</span>{% endif %}</td>
+          <td><a href="{{ url_for('ticket_detail', ticket_id=id) }}">{{ t.invoice_no }}</a></td>
+          <td>{{ t.bill_to | first_line }}</td>
+          <td><span class="badge s-{{ t.status | lower | replace(' ', '-') }}">{{ t.status }}</span></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</div>
+{% endfor %}
+<p><a href="{{ url_for('ticket_list') }}">Back to tickets</a> · <a href="{{ url_for('import_scans') }}">Import more</a></p>
+{% endblock %}

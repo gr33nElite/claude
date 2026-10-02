@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="tabs">
+  {% set open_count = counts.items() | rejectattr(0, 'equalto', 'Closed') | map(attribute=1) | sum %}
+  <a class="{{ 'on' if status == 'open' }}" href="{{ url_for('ticket_list', status='open', q=q) }}">Open <span>{{ open_count }}</span></a>
+  {% for s in STATUSES %}
+    <a class="{{ 'on' if status == s }}" href="{{ url_for('ticket_list', status=s, q=q) }}">{{ s }} <span>{{ counts.get(s, 0) }}</span></a>
+  {% endfor %}
+  <a class="{{ 'on' if status == 'review' }}" href="{{ url_for('ticket_list', status='review', q=q) }}">To check <span>{{ to_check }}</span></a>
+  <a class="{{ 'on' if status == 'all' }}" href="{{ url_for('ticket_list', status='all', q=q) }}">All</a>
+</div>
+
+{% if q %}<p class="muted">Results for “{{ q }}” · <a href="{{ url_for('ticket_list', status=status) }}">clear search</a></p>{% endif %}
+
+{% if not tickets %}
+  <div class="empty">
+    {% if counts %}No tickets match.{% else %}No tickets yet. <a href="{{ url_for('import_scans') }}">Import your scanned pick tickets</a> to get started.{% endif %}
+  </div>
+{% else %}
+<table class="grid">
+  <thead>
+    <tr><th>Invoice #</th><th>Date</th><th>Customer</th><th>Lines</th><th>Status</th>
+        <th>Priority</th><th>Assigned</th><th>Follow up</th><th>Latest note</th></tr>
+  </thead>
+  <tbody>
+  {% for t in tickets %}
+    <tr onclick="location.href='{{ url_for('ticket_detail', ticket_id=t.id) }}'">
+      <td><a href="{{ url_for('ticket_detail', ticket_id=t.id) }}">{{ t.invoice_no }}</a></td>
+      <td>{{ t.ticket_date or '' }}</td>
+      <td>{{ t.bill_to | first_line }}</td>
+      <td>{% if t.lines %}{% if t.short %}<span class="short">{{ t.short }} of {{ t.lines }} short</span>{% else %}<span class="ok">all {{ t.lines }} shipped</span>{% endif %}{% endif %}</td>
+      <td><span class="badge s-{{ t.status | lower | replace(' ', '-') }}">{{ t.status }}</span>{% if t.needs_review %} <span class="badge check" title="Some of the scan couldn't be read">check scan</span>{% endif %}</td>
+      <td><span class="p-{{ t.priority | lower }}">{{ t.priority }}</span></td>
+      <td>{{ t.assigned_to or '' }}</td>
+      <td>{{ t.follow_up or '' }}</td>
+      <td class="note">{{ (t.last_note or '') | truncate(70) }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

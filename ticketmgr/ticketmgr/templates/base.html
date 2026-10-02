@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}TicketMgr{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('ticket_list') }}">TicketMgr</a>
+    <nav>
+      <a href="{{ url_for('ticket_list') }}">Tickets</a>
+      <a href="{{ url_for('import_scans') }}">Import scans</a>
+    </nav>
+    <form class="search" action="{{ url_for('ticket_list') }}">
+      <input type="hidden" name="status" value="all">
+      <input name="q" placeholder="Search invoice, customer, part, notes" value="{{ q or '' }}">
+    </form>
+  </header>
+  <main>
+    {% with messages = get_flashed_messages() %}
+      {% for m in messages %}<div class="flash">{{ m }}</div>{% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
