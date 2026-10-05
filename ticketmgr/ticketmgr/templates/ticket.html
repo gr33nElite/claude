@@ -86,7 +86,7 @@
       <form method="post" action="{{ url_for('add_note', ticket_id=t.id) }}" class="note-form">
         <textarea name="body" rows="3" placeholder="Add a note: who you called, ETA, where the parts are…" required></textarea>
         <div class="row">
-          <label>Your name <input name="author" value="{{ author }}" size="12"></label>
+          <label>Your name <input name="author" value="{{ author }}" size="12" required></label>
           <button type="submit">Add note</button>
         </div>
       </form>

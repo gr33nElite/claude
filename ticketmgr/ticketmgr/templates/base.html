@@ -12,17 +12,47 @@
     <nav>
       <a href="{{ url_for('ticket_list') }}">Tickets</a>
       <a href="{{ url_for('import_scans') }}">Import scans</a>
+      <a href="{{ url_for('share') }}">Other computers</a>
     </nav>
+    <a class="me" href="{{ url_for('me', next=request.full_path) }}" title="The name your notes are signed with">{{ ('You: ' ~ me) if me else 'Set your name' }}</a>
     <form class="search" action="{{ url_for('ticket_list') }}">
       <input type="hidden" name="status" value="all">
       <input name="q" placeholder="Search invoice, customer, part, notes" value="{{ q or '' }}">
     </form>
   </header>
+  <div id="changed" class="changed" hidden>
+    Someone made changes. <button type="button" onclick="location.reload()">Show them</button>
+  </div>
   <main>
     {% with messages = get_flashed_messages() %}
       {% for m in messages %}<div class="flash">{{ m }}</div>{% endfor %}
     {% endwith %}
     {% block content %}{% endblock %}
   </main>
+<script>
+// Other people may be using TicketMgr at the same time. Check for their
+// changes and refresh, unless you're in the middle of typing something.
+(function () {
+  let stamp = null;
+  function busy() {
+    const el = document.activeElement;
+    if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) && el.type !== "submit") return true;
+    return [...document.querySelectorAll("textarea")].some(t => t.value.trim());
+  }
+  async function check() {
+    try {
+      const r = await fetch("{{ url_for('stamp') }}", {cache: "no-store"});
+      const s = (await r.json()).stamp;
+      if (stamp !== null && s !== stamp) {
+        if (busy()) document.getElementById("changed").hidden = false;
+        else { location.reload(); return; }
+      }
+      stamp = s;
+    } catch (e) { /* host unreachable for a moment; try again next time */ }
+  }
+  check();
+  setInterval(check, 10000);
+})();
+</script>
 </body>
 </html>

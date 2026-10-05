@@ -89,13 +89,17 @@ def now():
 
 
 def connect(path):
-    conn = sqlite3.connect(str(path))
+    # Several people can use the app at once; wait for a busy database
+    # instead of failing straight away.
+    conn = sqlite3.connect(str(path), timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
 def init(conn):
+    # WAL lets readers keep working while someone else is writing.
+    conn.execute("PRAGMA journal_mode = WAL")
     conn.executescript(SCHEMA)
     conn.commit()
 

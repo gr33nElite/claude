@@ -61,6 +61,9 @@ class Importer:
         stored = self.data_dir / "scans" / f"{scan_id:05d}_{Path(filename).name}"
         shutil.copyfile(src_path, stored)
         conn.execute("UPDATE scans SET stored_path = ? WHERE id = ?", (str(stored), scan_id))
+        # Commit page by page: OCR is slow, and on a shared install other
+        # people need to save notes while a stack is being imported.
+        conn.commit()
 
         pages = extract.page_count(stored)
         created, updated, review = [], [], []
@@ -116,6 +119,7 @@ class Importer:
                 db.add_entry(conn, ticket_id, f"Check page {i + 1} against the scan. " + "\n".join(problems),
                              kind="system")
             conn.execute("UPDATE tickets SET updated_at = ? WHERE id = ?", (db.now(), ticket_id))
+            conn.commit()
 
         conn.execute(
             "UPDATE scans SET pages = ?, created = ?, updated = ?, review = ? WHERE id = ?",

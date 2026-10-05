@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Your name · TicketMgr{% endblock %}
+{% block content %}
+<h1>Your name</h1>
+<form class="card" method="post">
+  <p>Notes and changes you make from this computer are signed with this name, so everyone can see who did what.</p>
+  <div class="row">
+    <label>Name <input name="name" value="{{ me }}" required autofocus></label>
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit">Save</button>
+  </div>
+</form>
+{% endblock %}
