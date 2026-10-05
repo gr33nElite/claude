@@ -2,16 +2,18 @@ import os
 import tempfile
 from pathlib import Path
 
-from flask import (Flask, abort, flash, g, redirect, render_template, request,
+from flask import (Flask, abort, flash, g, jsonify, redirect, render_template, request,
                    send_file, url_for)
 
 from . import db
+from .extract import TESSERACT_MISSING, find_tesseract
 from .importer import Importer
+from .net import lan_addresses
 
 DEFAULT_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 
-def create_app(data_dir=None, reader=None):
+def create_app(data_dir=None, reader=None, shared=False, port=5000):
     app = Flask(__name__)
     data_dir = Path(data_dir or os.environ.get("TICKETMGR_DATA") or DEFAULT_DATA_DIR)
     data_dir.mkdir(parents=True, exist_ok=True)
@@ -21,6 +23,8 @@ def create_app(data_dir=None, reader=None):
         SECRET_KEY=os.environ.get("TICKETMGR_SECRET", "ticketmgr-local"),
         MAX_CONTENT_LENGTH=500 * 1024 * 1024,
         READER=reader,
+        SHARED=shared,
+        PORT=port,
     )
     with db.connect(app.config["DB_PATH"]) as conn:
         db.init(conn)
@@ -38,7 +42,7 @@ def create_app(data_dir=None, reader=None):
 
     @app.context_processor
     def globals_():
-        return {"STATUSES": db.STATUSES, "PRIORITIES": db.PRIORITIES}
+        return {"STATUSES": db.STATUSES, "PRIORITIES": db.PRIORITIES, "me": author()}
 
     def get_ticket(ticket_id):
         row = get_db().execute("SELECT * FROM tickets WHERE id = ?", (ticket_id,)).fetchone()
@@ -47,7 +51,36 @@ def create_app(data_dir=None, reader=None):
         return row
 
     def author():
+        """The name this browser signs notes and changes with."""
         return request.cookies.get("author", "")
+
+    def remember_name(resp, name):
+        resp.set_cookie("author", name, max_age=10 * 365 * 24 * 3600)
+        return resp
+
+    @app.route("/me", methods=["GET", "POST"])
+    def me():
+        if request.method == "POST":
+            name = request.form.get("name", "").strip()
+            if not name:
+                flash("Enter your name.")
+                return redirect(url_for("me"))
+            return remember_name(redirect(request.form.get("next") or url_for("ticket_list")), name)
+        return render_template("me.html", next=request.args.get("next", ""))
+
+    @app.route("/share")
+    def share():
+        port = app.config["PORT"]
+        addresses = [f"http://{ip}:{port}" for ip in lan_addresses()]
+        return render_template("share.html", shared=app.config["SHARED"], addresses=addresses)
+
+    @app.route("/api/stamp")
+    def stamp():
+        """Changes whenever anyone changes anything, so open pages know to refresh."""
+        row = get_db().execute(
+            "SELECT (SELECT COUNT(*) FROM tickets), (SELECT MAX(updated_at) FROM tickets),"
+            " (SELECT MAX(id) FROM notes)").fetchone()
+        return jsonify(stamp="|".join(str(v) for v in row))
 
     @app.route("/")
     def ticket_list():
@@ -91,10 +124,14 @@ def create_app(data_dir=None, reader=None):
     def import_scans():
         if request.method == "GET":
             scans = get_db().execute("SELECT * FROM scans ORDER BY id DESC LIMIT 50").fetchall()
-            return render_template("import.html", scans=scans)
+            missing = None if app.config["READER"] or find_tesseract() else TESSERACT_MISSING
+            return render_template("import.html", scans=scans, missing=missing)
         files = [f for f in request.files.getlist("pdfs") if f and f.filename]
         if not files:
             flash("Choose one or more PDF files first.")
+            return redirect(url_for("import_scans"))
+        if not app.config["READER"] and not find_tesseract():
+            flash(TESSERACT_MISSING)
             return redirect(url_for("import_scans"))
         kwargs = {"reader": app.config["READER"]} if app.config["READER"] else {}
         importer = Importer(get_db(), app.config["DATA_DIR"], **kwargs)
@@ -161,7 +198,7 @@ def create_app(data_dir=None, reader=None):
     def mark_checked(ticket_id):
         get_ticket(ticket_id)
         conn = get_db()
-        conn.execute("UPDATE tickets SET needs_review = 0 WHERE id = ?", (ticket_id,))
+        conn.execute("UPDATE tickets SET needs_review = 0, updated_at = ? WHERE id = ?", (db.now(), ticket_id))
         db.add_entry(conn, ticket_id, "Checked against the scan.", kind="change", author=author() or None)
         conn.commit()
         return redirect(url_for("ticket_detail", ticket_id=ticket_id))
@@ -170,16 +207,18 @@ def create_app(data_dir=None, reader=None):
     def add_note(ticket_id):
         get_ticket(ticket_id)
         body = request.form.get("body", "").strip()
-        name = request.form.get("author", "").strip()
+        name = request.form.get("author", "").strip() or author()
         resp = redirect(url_for("ticket_detail", ticket_id=ticket_id) + "#worklog")
+        if not name:
+            # Notes are shared, so everyone needs to see who wrote them.
+            flash("Enter your name so others can see who wrote the note.")
+            return resp
         if body:
             conn = get_db()
-            db.add_entry(conn, ticket_id, body, author=name or None)
+            db.add_entry(conn, ticket_id, body, author=name)
             conn.execute("UPDATE tickets SET updated_at = ? WHERE id = ?", (db.now(), ticket_id))
             conn.commit()
-        if name:
-            resp.set_cookie("author", name, max_age=10 * 365 * 24 * 3600)
-        return resp
+        return remember_name(resp, name)
 
     def _item_values(form):
         def num(v):

@@ -2,6 +2,7 @@
 {% block title %}Import scans · TicketMgr{% endblock %}
 {% block content %}
 <h1>Import scanned pick tickets</h1>
+{% if missing %}<div class="flash">{{ missing }}</div>{% endif %}
 <form class="card upload" method="post" enctype="multipart/form-data" onsubmit="this.querySelector('button').disabled=true;this.querySelector('.busy').hidden=false">
   <p>Choose one or more PDF scans (for example from your flash drive). Each page is read as a pick ticket.
      New invoices become new tickets; invoices you already have are updated and keep their notes.</p>

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Other computers · TicketMgr{% endblock %}
+{% block content %}
+<h1>Use TicketMgr from other computers</h1>
+<div class="card">
+{% if shared %}
+  <p>TicketMgr is shared on your network. On any other computer in the building, open a web browser and go to:</p>
+  {% for a in addresses %}<p class="address">{{ a }}</p>{% else %}
+  <p class="short">Couldn't work out this computer's network address. Run <code>ipconfig</code> in a Command Prompt and use the IPv4 address, followed by <code>:{{ config.PORT }}</code>.</p>
+  {% endfor %}
+  <p>Bookmark it there. The other computers don't need anything installed, and everyone sees the same tickets and notes.
+     This computer has to stay on with TicketMgr running.</p>
+  <p class="muted">If the other computers can't connect, Windows on this computer may be blocking them: when TicketMgr starts,
+     allow Python through the firewall on <b>private</b> networks.</p>
+{% else %}
+  <p>Right now only this computer can open TicketMgr. To let other computers on your network use it too,
+     close TicketMgr and start it with <b>start-shared.bat</b> (or <code>py -m ticketmgr serve --share</code>).
+     Then come back to this page for the address to use on the other computers.</p>
+{% endif %}
+</div>
+{% endblock %}

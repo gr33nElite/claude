@@ -19,22 +19,62 @@ Everything runs on your own computer, and nothing is sent anywhere.
 
 ## Install (Windows)
 
-1. Install **Python 3.10+** from <https://www.python.org/downloads/> and tick
-   *Add python.exe to PATH* in the installer.
-2. Install **Tesseract OCR** (the free text reader) from
-   <https://github.com/UB-Mannheim/tesseract/wiki>. The default install
-   location is fine, since TicketMgr looks for it there.
+1. Install **Python 3.10+** from <https://www.python.org/downloads/>. If the
+   installer offers *Add python.exe to PATH*, tick it. Newer installers set
+   up the `py` command instead, which works the same way.
+2. Install **Tesseract OCR** (the free text reader). The simplest way is to
+   run `winget install UB-Mannheim.TesseractOCR` in a Command Prompt, or use
+   the installer from <https://github.com/UB-Mannheim/tesseract/wiki>. The
+   default install location is fine, since TicketMgr looks for it there.
 3. Open a Command Prompt in this `ticketmgr` folder and run:
 
    ```
-   python -m pip install -r requirements.txt
+   py -m pip install -r requirements.txt
    ```
 
-4. Double-click `start.bat` (or run `python -m ticketmgr`). Your browser opens
+   (Use `python` in place of `py` if `py` isn't recognized.)
+
+4. Double-click `start.bat` (or run `py -m ticketmgr`). Your browser opens
    at <http://127.0.0.1:5000>.
 
 On macOS, run `brew install tesseract`. On Debian or Ubuntu, run
 `sudo apt install tesseract-ocr`. Then follow steps 3 and 4.
+
+## Updating
+
+If you set TicketMgr up with `git clone` (see below), double-click
+**`update.bat`** to get the latest version. Your tickets in `data\` are
+kept. Restart TicketMgr afterwards.
+
+One-time setup with git, in a Command Prompt:
+
+```
+winget install Git.Git
+cd /d %USERPROFILE%
+git clone -b main https://github.com/gr33nElite/claude.git TicketMgr
+```
+
+TicketMgr is then in `%USERPROFILE%\TicketMgr\ticketmgr`. If you had it
+somewhere else before, copy its `data` folder across to keep your tickets.
+
+## Sharing with other computers
+
+One computer (the host) runs TicketMgr and keeps the tickets. Other
+computers on the same network open it in a web browser, so they don't need
+Python or Tesseract installed, and everyone sees the same tickets and notes.
+
+1. On the host, start TicketMgr with **`start-shared.bat`** (or
+   `py -m ticketmgr serve --share`). If Windows asks whether to let Python
+   through the firewall, allow it on **private** networks.
+2. On the host, open **Other computers** in TicketMgr. It shows the address
+   to use, such as `http://192.168.1.20:5000`.
+3. On each other computer, open that address in a browser and bookmark it.
+
+The host has to stay on with TicketMgr running. Everyone on the network can
+open it, and there's no password, so only share it on your own business
+network. Each computer asks for a name once, and notes and changes are
+signed with it. Open pages refresh by themselves when someone else makes a
+change; if you're typing at the time, a banner asks you to refresh instead.
 
 ## Using it
 
