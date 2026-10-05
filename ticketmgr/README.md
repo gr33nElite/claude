@@ -51,7 +51,7 @@ One-time setup with git, in a Command Prompt:
 ```
 winget install Git.Git
 cd /d %USERPROFILE%
-git clone https://github.com/gr33nElite/claude.git TicketMgr
+git clone -b main https://github.com/gr33nElite/claude.git TicketMgr
 ```
 
 TicketMgr is then in `%USERPROFILE%\TicketMgr\ticketmgr`. If you had it
