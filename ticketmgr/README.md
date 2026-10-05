@@ -40,6 +40,23 @@ Everything runs on your own computer, and nothing is sent anywhere.
 On macOS, run `brew install tesseract`. On Debian or Ubuntu, run
 `sudo apt install tesseract-ocr`. Then follow steps 3 and 4.
 
+## Updating
+
+If you set TicketMgr up with `git clone` (see below), double-click
+**`update.bat`** to get the latest version. Your tickets in `data\` are
+kept. Restart TicketMgr afterwards.
+
+One-time setup with git, in a Command Prompt:
+
+```
+winget install Git.Git
+cd /d %USERPROFILE%
+git clone https://github.com/gr33nElite/claude.git TicketMgr
+```
+
+TicketMgr is then in `%USERPROFILE%\TicketMgr\ticketmgr`. If you had it
+somewhere else before, copy its `data` folder across to keep your tickets.
+
 ## Sharing with other computers
 
 One computer (the host) runs TicketMgr and keeps the tickets. Other
